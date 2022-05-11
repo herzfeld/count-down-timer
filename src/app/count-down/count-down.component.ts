@@ -1,48 +1,58 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subscription, interval } from 'rxjs';
+import { Component } from "@angular/core";
+import { interval, Observable } from "rxjs";
+import { map, shareReplay } from "rxjs/operators";
+
+interface timeComponents {
+  secondsToDday: number;
+  minutesToDday: number;
+  hoursToDday: number;
+  daysToDday: number;
+}
 
 @Component({
-  selector: 'app-count-down',
-  templateUrl: './count-down.component.html',
-  styleUrls: ['./count-down.component.css']
+  selector: "sg-count-down",
+  templateUrl: "./count-down.component.html",
+  styleUrls: ["./count-down.component.css"]
 })
-export class CountDownComponent implements OnInit, OnDestroy {
+export class CountDownComponent {
+  public timeLeft$: Observable<timeComponents>;
 
-  private subscription: Subscription;
-
-  public dateNow = new Date();
-  public dDay = new Date('Jan 01 2023 00:00:00');
-  milliSecondsInASecond = 1000;
-  hoursInADay = 24;
-  minutesInAnHour = 60;
-  SecondsInAMinute  = 60;
-
-  public timeDifference: number;
-  public secondsToDday: number;
-  public minutesToDday: number;
-  public hoursToDday: number;
-  public daysToDday: number;
-
-
-  private getTimeDifference () {
-    this.timeDifference = this.dDay.getTime() - new  Date().getTime();
-    this.allocateTimeUnits(this.timeDifference);
+  constructor() {
+    this.timeLeft$ = interval(1000).pipe(
+      map(x => this.calcDateDiff()),
+      shareReplay(1)
+    );
   }
-
-  private allocateTimeUnits (timeDifference: number) {
-    this.secondsToDday = Math.floor((timeDifference) / (this.milliSecondsInASecond) % this.SecondsInAMinute);
-    this.minutesToDday = Math.floor((timeDifference) / (this.milliSecondsInASecond * this.minutesInAnHour) % this.SecondsInAMinute);
-    this.hoursToDday = Math.floor((timeDifference) / (this.milliSecondsInASecond * this.minutesInAnHour * this.SecondsInAMinute) % this.hoursInADay);
-    this.daysToDday = Math.floor((timeDifference) / (this.milliSecondsInASecond * this.minutesInAnHour * this.SecondsInAMinute * this.hoursInADay));
-  }
-
-  ngOnInit() {
-    this.subscription = interval(1000).subscribe(x => {
-      this.getTimeDifference();
-    });
-  }
-
-  ngOnDestroy() {
-    this.subscription.unsubscribe();
+  
+  calcDateDiff(endDay: Date = new Date(2022, 4, 12)): timeComponents {
+    const dDay = endDay.valueOf();
+  
+    const milliSecondsInASecond = 1000;
+    const hoursInADay = 24;
+    const minutesInAnHour = 60;
+    const secondsInAMinute = 60;
+  
+    const timeDifference = dDay - Date.now();
+  
+    const daysToDday = Math.floor(
+      timeDifference /
+        (milliSecondsInASecond * minutesInAnHour * secondsInAMinute * hoursInADay)
+    );
+  
+    const hoursToDday = Math.floor(
+      (timeDifference /
+        (milliSecondsInASecond * minutesInAnHour * secondsInAMinute)) %
+        hoursInADay
+    );
+  
+    const minutesToDday = Math.floor(
+      (timeDifference / (milliSecondsInASecond * minutesInAnHour)) %
+        secondsInAMinute
+    );
+  
+    const secondsToDday =
+      Math.floor(timeDifference / milliSecondsInASecond) % secondsInAMinute;
+  
+    return { secondsToDday, minutesToDday, hoursToDday, daysToDday };
   }
 }
